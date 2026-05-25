@@ -1,6 +1,8 @@
 # LLM API Translator
 
-![llm-api-translator](translator-icon.png)
+<p align="center">
+  <img src="translator-icon.png" alt="llm-api-translator" width="128">
+</p>
 
 > **Multi-format LLM API proxy: accept Anthropic Messages API and OpenAI Chat API, forward to any OpenAI-compatible backend (DeepSeek, Groq, Together, etc.), return responses in the original format.**
 

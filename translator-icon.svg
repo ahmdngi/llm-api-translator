@@ -6,6 +6,8 @@
     </linearGradient>
   </defs>
   <rect width="128" height="128" rx="24" fill="url(#bg)"/>
-  <path d="M32 64 L52 44 L52 56 L72 56 L72 72 L52 72 L52 84 Z" fill="white" opacity="0.9"/>
-  <path d="M96 64 L76 44 L76 56 L56 56 L56 72 L76 72 L76 84 Z" fill="white" opacity="0.6"/>
+  <!-- Left-to-right arrow -->
+  <path d="M30 52 L50 32 L50 46 L80 46 L80 58 L50 58 L50 72 Z" fill="#ffffff" opacity="0.85"/>
+  <!-- Right-to-left arrow (overlapping) -->
+  <path d="M98 76 L78 96 L78 82 L48 82 L48 70 L78 70 L78 56 Z" fill="#ffffff" opacity="0.55"/>
 </svg>

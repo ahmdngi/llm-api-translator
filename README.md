@@ -1,5 +1,7 @@
 # LLM API Translator
 
+![llm-api-translator](translator-icon.png)
+
 > **Multi-format LLM API proxy: accept Anthropic Messages API and OpenAI Chat API, forward to any OpenAI-compatible backend (DeepSeek, Groq, Together, etc.), return responses in the original format.**
 
 - Version: **1.0.0**, published 25 May 2026.

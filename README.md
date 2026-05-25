@@ -68,15 +68,34 @@ DEEPSEEK_RESPONSE_FORMAT=openai node translator-proxy.mjs
 ## Architecture
 
 ```
-                         ┌─ Normalizers ─┐
-  POST /v1/messages ────▶│  Anthropic    │
-                         └───────┬───────┘
-                                 │  ┌─ Canonical ─┐     ┌─ Forwarder ──────┐
-                                 ├──▶│    IR       │────▶│  DeepSeek/Groq   │
-                                 │   └──────┬──────┘     │  Together/etc.   │
-                         ┌───────┴───────┐ └─────────────┴──────────────────┘
-  POST /v1/chat/─────────▶│  OpenAI      │
-  completions             └─ Denormalizers┘
+  ┌─ Input ─────────────┐    ┌─ Normalizer ─┐
+  │ POST /v1/messages   │───▶│  Anthropic   │──┐
+  │ (Anthropic format)  │    └──────────────┘  │
+  └─────────────────────┘                      │
+                                               │
+  ┌─ Input ─────────────┐    ┌─ Normalizer ─┐  │
+  │ POST /v1/chat/      │───▶│  OpenAI      │──┤
+  │   completions       │    └──────────────┘  │
+  │ (OpenAI format)     │                      │
+  └─────────────────────┘                      │
+                                               ▼
+                                    ┌──────────────────┐
+                                    │  Canonical IR    │
+                                    │  (format-agnostic│
+                                    │   message shape) │
+                                    └────────┬─────────┘
+                                             │
+                                             ▼
+                                    ┌──────────────────┐
+                                    │  DeepSeek / Groq │
+                                    │  Together / etc. │
+                                    └────────┬─────────┘
+                                             │
+                                    ┌────────┴─────────┐
+                                    │  Denormalizer    │
+                                    │  (back to input  │
+                                    │   format)        │
+                                    └──────────────────┘
 ```
 
 ## Endpoints

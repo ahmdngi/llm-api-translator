@@ -1,26 +1,23 @@
 # LLM API Translator
 
-A lightweight proxy that translates between LLM API formats. Currently supports **Anthropic Messages API → OpenAI Chat API** translation, letting you route Anthropic-format clients through any OpenAI-compatible backend.
+A multi-format LLM API proxy that accepts **Anthropic Messages API** and **OpenAI Chat API** formats, translates them to a canonical internal representation, and forwards to any OpenAI-compatible backend (DeepSeek, Groq, Together, etc.). Responses are returned in the original input format.
 
 ```
-Claude Code / Cursor / etc.        Your provider
-     (Anthropic format)               (OpenAI format)
-           │                              ▲
-           ▼                              │
-    ┌──────────────┐        ┌──────────────────────┐
-    │  POST /v1/   │ ──────▶│  POST /v1/chat/      │
-    │  messages    │        │  completions          │
-    └──────────────┘        └──────────────────────┘
-                                   │
-                          ┌────────┴────────┐
-                          │ DeepSeek / Groq │
-                          │ Together / etc. │
-                          └─────────────────┘
+┌─ Input Formats ─────────────────┐     ┌─ Forwarder ───────────┐
+│                                 │     │                       │
+│  Anthropic Messages API         │     │  Normalize → IR       │
+│  POST /v1/messages              │────▶│  → OpenAI Chat format │
+│                                 │     │  → DeepSeek/Groq/etc  │
+│  OpenAI Chat API                │     │  → Denormalize back   │
+│  POST /v1/chat/completions      │────▶│  to input format       │
+│                                 │     │                       │
+│  (Future: Gemini, etc.)         │     │                       │
+└─────────────────────────────────┘     └───────────────────────┘
 ```
 
 ## Why?
 
-The Anthropic Messages API is used by tools like **Claude Code CLI**, **Cursor**, and various AI agents. But many cost-effective providers (DeepSeek, Groq, Together, etc.) only support the OpenAI Chat API format. This proxy bridges the gap — no SDK changes needed.
+Tools use different API formats — **Claude Code CLI** and **Cursor** speak Anthropic Messages API, while most SDKs and cost-effective providers (DeepSeek, Groq, Together) speak OpenAI Chat API. This proxy lets any client talk to any backend, no SDK changes needed.
 
 ## Quick Start
 
@@ -40,24 +37,20 @@ The proxy starts on `http://localhost:3800`.
 
 ## Usage
 
-### With Claude Code CLI
+### Anthropic format (Claude Code CLI, Cursor, etc.)
 
 ```bash
 # Point Claude Code at the proxy
 ANTHROPIC_BASE_URL=http://localhost:3800 claude -p "Hello from DeepSeek!"
-```
 
-### With any Anthropic-format client
-
-```bash
-# Just set ANTHROPIC_BASE_URL to the proxy address
+# Or set the env var globally
 export ANTHROPIC_BASE_URL=http://localhost:3800
 ```
 
-### Direct API call
+### OpenAI format (any OpenAI-compatible SDK)
 
 ```bash
-curl http://localhost:3800/v1/messages \
+curl http://localhost:3800/v1/chat/completions \
   -H "Content-Type: application/json" \
   -H "x-api-key: sk-your-key" \
   -d '{
@@ -101,8 +94,9 @@ node translator-proxy.mjs
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/v1/messages` | POST | Anthropic Messages API → translated to OpenAI, forwarded, result translated back |
-| `/v1/models` | GET | Returns a list of available models (configurable in code) |
+| `/v1/messages` | POST | Anthropic Messages API → translated to OpenAI, forwarded, result translated back to Anthropic |
+| `/v1/chat/completions` | POST | OpenAI Chat API → forwarded to DeepSeek (passthrough), result returned as OpenAI |
+| `/v1/models` | GET | Returns format-appropriate model list |
 | `/health` | GET | Health check showing upstream and current model config |
 
 ## What's translated
@@ -115,16 +109,23 @@ node translator-proxy.mjs
 | `tool_choice` (auto/any/tool) | `tool_choice` mapping |
 | `tool_use` in assistant response | `tool_calls` in response |
 | `tool_result` in user messages | `tool` role messages |
-| Streaming (SSE) | Anthropic event stream → OpenAI SSE and back |
+| Streaming (SSE) | Anthropic event stream ↔ OpenAI SSE |
 | `max_tokens`, `temperature` | Passed through |
+
+To send Anthropic format but get OpenAI format back (or vice versa), set:
+```bash
+DEEPSEEK_RESPONSE_FORMAT=openai  # or 'anthropic'
+```
 
 ## Roadmap
 
-- [ ] Bidirectional (OpenAI → Anthropic)
+- [x] Anthropic Messages API ↔ OpenAI Chat API
+- [x] OpenAI Chat API → DeepSeek (passthrough)
 - [ ] Google Gemini API format
 - [ ] Configurable model list via env
 - [ ] Docker image
 - [ ] Rate limiting / auth on inbound
+- [ ] Streaming passthrough for OpenAI endpoint
 
 ## License
 

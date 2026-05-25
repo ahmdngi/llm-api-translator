@@ -5,7 +5,7 @@
   "type": "module",
   "main": "translator-proxy.mjs",
   "bin": {
-    "llm-translator": "./translator-proxy.mjs"
+    "llm-translator": "translator-proxy.mjs"
   },
   "engines": {
     "node": ">=18"

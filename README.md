@@ -1,28 +1,24 @@
 # LLM API Translator
 
-A multi-format LLM API proxy that accepts **Anthropic Messages API** and **OpenAI Chat API** formats, translates them to a canonical internal representation, and forwards to any OpenAI-compatible backend (DeepSeek, Groq, Together, etc.). Responses are returned in the original input format.
+> **Multi-format LLM API proxy: accept Anthropic Messages API and OpenAI Chat API, forward to any OpenAI-compatible backend (DeepSeek, Groq, Together, etc.), return responses in the original format.**
 
-```
-┌─ Input Formats ─────────────────┐     ┌─ Forwarder ───────────┐
-│                                 │     │                       │
-│  Anthropic Messages API         │     │  Normalize → IR       │
-│  POST /v1/messages              │────▶│  → OpenAI Chat format │
-│                                 │     │  → DeepSeek/Groq/etc  │
-│  OpenAI Chat API                │     │  → Denormalize back   │
-│  POST /v1/chat/completions      │────▶│  to input format       │
-│                                 │     │                       │
-│  (Future: Gemini, etc.)         │     │                       │
-└─────────────────────────────────┘     └───────────────────────┘
-```
+- Version: **1.0.0**, published 25 May 2026.
+- License: MIT
+- Runtime: Node.js 18+
 
-## Why?
+## Why
 
-Tools use different API formats — **Claude Code CLI** and **Cursor** speak Anthropic Messages API, while most SDKs and cost-effective providers (DeepSeek, Groq, Together) speak OpenAI Chat API. This proxy lets any client talk to any backend, no SDK changes needed.
+LLM tools speak different API formats. Claude Code and Cursor use Anthropic Messages API. Most cost-effective providers (DeepSeek, Groq, Together) use OpenAI Chat API. Instead of modifying SDKs or maintaining vendor-specific adapters, run this proxy — it translates between formats transparently.
+
+Use cases:
+- Run Claude Code against DeepSeek instead of Anthropic's API ($0 vs $100/mo)
+- Point any OpenAI SDK at a cheaper backend without code changes
+- Bridge Anthropic-format agents to OpenAI-compatible infrastructure
+- Experiment with multiple backends by swapping a single environment variable
 
 ## Quick Start
 
 ```bash
-# Clone and install
 git clone https://github.com/ahmdngi/llm-api-translator.git
 cd llm-api-translator
 
@@ -33,21 +29,21 @@ export DEEPSEEK_API_KEY="sk-..."
 node translator-proxy.mjs
 ```
 
-The proxy starts on `http://localhost:3800`.
+The proxy listens on `http://localhost:3800`.
 
 ## Usage
 
-### Anthropic format (Claude Code CLI, Cursor, etc.)
+### Anthropic format (Claude Code, Cursor, etc.)
 
 ```bash
-# Point Claude Code at the proxy
+# One-shot
 ANTHROPIC_BASE_URL=http://localhost:3800 claude -p "Hello from DeepSeek!"
 
-# Or set the env var globally
+# Or set globally
 export ANTHROPIC_BASE_URL=http://localhost:3800
 ```
 
-### OpenAI format (any OpenAI-compatible SDK)
+### OpenAI format (any OpenAI SDK)
 
 ```bash
 curl http://localhost:3800/v1/chat/completions \
@@ -60,72 +56,87 @@ curl http://localhost:3800/v1/chat/completions \
   }'
 ```
 
-## Configuration
+### Force a different response format
 
-All settings via environment variables:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DEEPSEEK_API_KEY` or `ANTHROPIC_API_KEY` | — | Your API key for the upstream provider |
-| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | Upstream OpenAI-compatible API base URL |
-| `OPENAI_MODEL` | `deepseek-chat` | Model name to forward to upstream |
-| `PROXY_PORT` | `3800` | Port the proxy listens on |
-| `PROXY_DEBUG` | — | Set to anything to enable debug logging to stderr |
-
-### Example: Route to Groq
+By default, responses match the input format. Override with `DEEPSEEK_RESPONSE_FORMAT`:
 
 ```bash
-export DEEPSEEK_BASE_URL=https://api.groq.com/openai
-export DEEPSEEK_API_KEY="gsk-..."
-export OPENAI_MODEL="llama-3.3-70b-versatile"
-node translator-proxy.mjs
+# Send Anthropic format, get OpenAI format back
+DEEPSEEK_RESPONSE_FORMAT=openai node translator-proxy.mjs
 ```
 
-### Example: Route to Together
+## Architecture
 
-```bash
-export DEEPSEEK_BASE_URL=https://api.together.xyz/v1
-export DEEPSEEK_API_KEY="..."
-export OPENAI_MODEL="mistralai/Mixtral-8x22B-Instruct-v0.1"
-node translator-proxy.mjs
+```
+                         ┌─ Normalizers ─┐
+  POST /v1/messages ────▶│  Anthropic    │
+                         └───────┬───────┘
+                                 │  ┌─ Canonical ─┐     ┌─ Forwarder ──────┐
+                                 ├──▶│    IR       │────▶│  DeepSeek/Groq   │
+                                 │   └──────┬──────┘     │  Together/etc.   │
+                         ┌───────┴───────┐ └─────────────┴──────────────────┘
+  POST /v1/chat/─────────▶│  OpenAI      │
+  completions             └─ Denormalizers┘
 ```
 
 ## Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/v1/messages` | POST | Anthropic Messages API → translated to OpenAI, forwarded, result translated back to Anthropic |
-| `/v1/chat/completions` | POST | OpenAI Chat API → forwarded to DeepSeek (passthrough), result returned as OpenAI |
-| `/v1/models` | GET | Returns format-appropriate model list |
-| `/health` | GET | Health check showing upstream and current model config |
+| `/v1/messages` | POST | Accept Anthropic Messages API, return Anthropic format |
+| `/v1/chat/completions` | POST | Accept OpenAI Chat API, return OpenAI format |
+| `/v1/models` | GET | List models (format-appropriate names) |
+| `/health` | GET | Upstream status and config |
 
-## What's translated
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DEEPSEEK_API_KEY` or `ANTHROPIC_API_KEY` | — | API key for the upstream provider |
+| `DEEPSEEK_BASE_URL` | `https://api.deepseek.com` | OpenAI-compatible API base URL |
+| `OPENAI_MODEL` | `deepseek-chat` | Model name sent to upstream |
+| `PROXY_PORT` | `3800` | Listen port |
+| `DEEPSEEK_RESPONSE_FORMAT` | *(auto)* | Override: `openai` or `anthropic` |
+| `PROXY_DEBUG` | — | Enable debug logging to stderr |
+
+### Provider examples
+
+**Route to Groq:**
+```bash
+DEEPSEEK_BASE_URL=https://api.groq.com/openai \
+DEEPSEEK_API_KEY="gsk-..." \
+OPENAI_MODEL="llama-3.3-70b-versatile" \
+node translator-proxy.mjs
+```
+
+**Route to Together:**
+```bash
+DEEPSEEK_BASE_URL=https://api.together.xyz/v1 \
+DEEPSEEK_API_KEY="..." \
+OPENAI_MODEL="mistralai/Mixtral-8x22B-Instruct-v0.1" \
+node translator-proxy.mjs
+```
+
+## Translation Reference
 
 | Anthropic (inbound) | OpenAI (outbound) |
 |---------------------|-------------------|
-| `system` → `messages[0].role="system"` | System message |
-| `messages[]` (user/assistant) | Role mapping + content extraction |
-| `tools[]` (name, description, input_schema) | `functions[]` style |
-| `tool_choice` (auto/any/tool) | `tool_choice` mapping |
-| `tool_use` in assistant response | `tool_calls` in response |
-| `tool_result` in user messages | `tool` role messages |
-| Streaming (SSE) | Anthropic event stream ↔ OpenAI SSE |
-| `max_tokens`, `temperature` | Passed through |
-
-To send Anthropic format but get OpenAI format back (or vice versa), set:
-```bash
-DEEPSEEK_RESPONSE_FORMAT=openai  # or 'anthropic'
-```
+| `system` string or block | `messages[0].role="system"` |
+| `messages[].content` blocks | Flat string or tool role |
+| `tools[].input_schema` | `function.parameters` |
+| `tool_choice` auto/any/tool | `tool_choice` auto/required/function |
+| `tool_use` response block | `tool_calls` in choice |
+| `tool_result` in user message | `role: "tool"` message |
+| SSE stream | Anthropic events ↔ OpenAI SSE |
 
 ## Roadmap
 
 - [x] Anthropic Messages API ↔ OpenAI Chat API
-- [x] OpenAI Chat API → DeepSeek (passthrough)
+- [x] Bidirectional (any input → any output format)
 - [ ] Google Gemini API format
 - [ ] Configurable model list via env
 - [ ] Docker image
 - [ ] Rate limiting / auth on inbound
-- [ ] Streaming passthrough for OpenAI endpoint
 
 ## License
 

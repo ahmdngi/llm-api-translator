@@ -1,0 +1,30 @@
+{
+  "name": "llm-api-translator",
+  "version": "1.0.0",
+  "description": "Translate between LLM API formats — Anthropic Messages API ↔ OpenAI Chat API. Route Claude Code, Cursor, or any Anthropic-format client through OpenAI-compatible backends like DeepSeek, Groq, Together, or any OpenAI-compatible provider.",
+  "type": "module",
+  "main": "translator-proxy.mjs",
+  "bin": {
+    "llm-translator": "./translator-proxy.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "llm",
+    "api",
+    "proxy",
+    "translator",
+    "anthropic",
+    "openai",
+    "deepseek",
+    "claude",
+    "messages-api",
+    "chat-completions"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahmdngi/llm-api-translator.git"
+  }
+}

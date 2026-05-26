@@ -32,6 +32,7 @@ const DEEPSEEK_BASE_URL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || 'deepseek-chat';
 const API_KEY = process.env.ANTHROPIC_API_KEY || process.env.DEEPSEEK_API_KEY || '';
 const RESPONSE_FORMAT = (process.env.DEEPSEEK_RESPONSE_FORMAT || '').toLowerCase();
+const REASONING_FIX = process.env.DEEPSEEK_REASONING_FIX !== 'false'; // default: on
 
 function log(...args) {
   if (process.env.PROXY_DEBUG) console.error('[proxy]', ...args);
@@ -239,6 +240,12 @@ function irToOpenAIRequest(ir) {
         entry.tool_calls = m.tool_calls;
       } else {
         entry.content = m.content || '';
+      }
+      // DeepSeek V4 thinking mode requires reasoning_content on every
+      // assistant message, even when empty. Without it, multi-turn
+      // tool-use requests fail with 400. Disable with DEEPSEEK_REASONING_FIX=false
+      if (REASONING_FIX && m.role === 'assistant') {
+        entry.reasoning_content = '';
       }
       msgs.push(entry);
     }

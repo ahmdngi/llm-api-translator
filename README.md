@@ -10,6 +10,11 @@
 - License: MIT
 - Runtime: Node.js 18+
 
+[![GitHub Release](https://img.shields.io/github/v/release/ahmdngi/llm-api-translator?style=flat-square)](https://github.com/ahmdngi/llm-api-translator/releases)
+[![License](https://img.shields.io/github/license/ahmdngi/llm-api-translator?style=flat-square)]()
+[![Language](https://img.shields.io/badge/language-JavaScript-blue?style=flat-square)]()
+[![Stars](https://img.shields.io/github/stars/ahmdngi/llm-api-translator?style=flat-square)](https://github.com/ahmdngi/llm-api-translator)
+
 ## Why
 
 LLM tools speak different API formats. Claude Code and Cursor use Anthropic Messages API. Most cost-effective providers (DeepSeek, Groq, Together) use OpenAI Chat API. Instead of modifying SDKs or maintaining vendor-specific adapters, run this proxy — it translates between formats transparently.
